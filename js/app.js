@@ -8,19 +8,16 @@ const NAV_ITEMS = [
   { page: "tracker",      icon: "📋", label: "Tracker",      file: "tracker.html" },
   { page: "stock",        icon: "📦", label: "Stock",        file: "stock.html" },
   { page: "transactions", icon: "🔁", label: "Transactions", file: "transactions.html" },
-  { page: "labo",         icon: "🧪", label: "Labo",         file: "labo.html" },
-  { page: "stats",        icon: "📊", label: "Stats",        file: "stats.html" },
-  { page: "quotas",       icon: "🎯", label: "Quotas",       file: "quotas.html" },
   { page: "blanchiment",  icon: "💵", label: "Blanchiment",  file: "blanchiment.html" },
+  { page: "stats",        icon: "📊", label: "Stats & Quotas", file: "stats.html" },
   { page: "paye",         icon: "💰", label: "Paye",         file: "paye.html" },
   { page: "taxes",        icon: "🧾", label: "Taxes",        file: "taxes.html" },
   { page: "admin",        icon: "⚙️", label: "Admin",        file: "admin.html" },
   { page: "profil",       icon: "👤", label: "Profil",       file: "profil.html" }
 ];
 
-/* Les 5 premières pages restent toujours visibles dans la sidebar ;
-   tout le reste est regroupé dans un sous-menu repliable "Plus". */
-const NAV_PRIMARY_COUNT = 5;
+/* Navigation à plat — tous les éléments toujours visibles dans la sidebar. */
+const NAV_PRIMARY_COUNT = NAV_ITEMS.length;
 
 /* Ouvre/ferme le sous-menu "Plus" dans la sidebar. */
 function toggleNavSubmenu(toggleEl) {

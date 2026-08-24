@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stats — The Roolio Family</title>
+<title>Stats &amp; Quotas — The Roolio Family</title>
 <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -17,44 +17,69 @@
 <script>
 let SESSION;
 let MEMBRES = [], ACTIONS_DISPO = {}, SEMAINES = [], ACTIONS_ALL = [], PRODUITS_DROGUE = [];
+let ACTIVE_STATS_TAB = "stats";
+
+function switchStatsTab(tab) {
+  ACTIVE_STATS_TAB = tab;
+  document.getElementById("tabStats").classList.toggle("active", tab === "stats");
+  document.getElementById("tabQuotas").classList.toggle("active", tab === "quotas");
+  document.getElementById("panelStats").style.display = tab === "stats" ? "block" : "none";
+  document.getElementById("panelQuotas").style.display = tab === "quotas" ? "block" : "none";
+}
 
 function renderContent() {
   document.getElementById("content").innerHTML = `
-    <h1>Stats</h1>
+    <h1>Stats &amp; Quotas</h1>
     <div class="sigil-rule"></div>
 
-    <div class="panel mt16">
-      <div class="row" style="align-items:flex-end; flex-wrap:wrap; gap:12px;">
-        <div><label class="l">Type</label><select id="selType" onchange="onTypeChange()">
-          <option value="action">Par action</option>
-          <option value="drogue">Vente de drogue</option>
-        </select></div>
-        <div id="wrapAction"><label class="l">Action</label><select id="selAction" onchange="chargerStats()"></select></div>
-        <div id="wrapDrogue" style="display:none"><label class="l">Drogue</label><select id="selDrogue" onchange="chargerStats()"></select></div>
-        <div><label class="l">Portée</label><select id="selPortee" onchange="onPorteeChange()">
-          <option value="groupe">Tout le groupe</option>
-          <option value="membre">Par membre</option>
-        </select></div>
-        <div id="wrapMembre" style="display:none"><label class="l">Membre</label><select id="selMembre" onchange="chargerStats()"></select></div>
-        <div><label class="l">Semaine</label><select id="selSemaine" onchange="chargerStats()"></select></div>
+    <div class="tabs mt16" id="statsTabsBar">
+      <div class="tab active" id="tabStats" onclick="switchStatsTab('stats')">📊 Statistiques</div>
+      <div class="tab" id="tabQuotas" onclick="switchStatsTab('quotas')">🎯 Quotas</div>
+    </div>
+
+    <div id="panelStats">
+      <div class="panel mt16">
+        <div class="row" style="align-items:flex-end; flex-wrap:wrap; gap:12px;">
+          <div><label class="l">Type</label><select id="selType" onchange="onTypeChange()">
+            <option value="action">Par action</option>
+            <option value="drogue">Vente de drogue</option>
+          </select></div>
+          <div id="wrapAction"><label class="l">Action</label><select id="selAction" onchange="chargerStats()"></select></div>
+          <div id="wrapDrogue" style="display:none"><label class="l">Drogue</label><select id="selDrogue" onchange="chargerStats()"></select></div>
+          <div><label class="l">Portée</label><select id="selPortee" onchange="onPorteeChange()">
+            <option value="groupe">Tout le groupe</option>
+            <option value="membre">Par membre</option>
+          </select></div>
+          <div id="wrapMembre" style="display:none"><label class="l">Membre</label><select id="selMembre" onchange="chargerStats()"></select></div>
+          <div><label class="l">Semaine</label><select id="selSemaine" onchange="chargerStats()"></select></div>
+        </div>
+      </div>
+
+      <div class="grid cols-2 mt16">
+        <div class="card"><h3>Gains totaux</h3><div class="stat-num gold" id="totalGains">0 $</div></div>
+        <div class="card" id="cardQuantite"><h3 id="titreQuantite">Quantité</h3><div class="stat-num gold" id="quantiteVal">—</div></div>
+      </div>
+
+      <div class="panel mt24" id="panelClassement">
+        <div class="panel-head"><h2>Classement membres</h2></div>
+        <table><thead><tr id="theadClassement"><th>#</th><th>Membre</th><th>Actions</th><th>Réussites</th><th>Gains générés</th></tr></thead>
+          <tbody id="tblClassement"><tr class="empty-row"><td colspan="5">Chargement…</td></tr></tbody></table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Détail par semaine</h2></div>
+        <table><thead><tr><th>Semaine</th><th id="theadSemainesActions">Actions</th><th>Gains sale</th><th>Gains propre</th></tr></thead>
+          <tbody id="tblSemaines"><tr class="empty-row"><td colspan="4">Chargement…</td></tr></tbody></table>
       </div>
     </div>
 
-    <div class="grid cols-2 mt16">
-      <div class="card"><h3>Gains totaux</h3><div class="stat-num gold" id="totalGains">0 $</div></div>
-      <div class="card" id="cardQuantite"><h3 id="titreQuantite">Quantité</h3><div class="stat-num gold" id="quantiteVal">—</div></div>
-    </div>
-
-    <div class="panel mt24" id="panelClassement">
-      <div class="panel-head"><h2>Classement membres</h2></div>
-      <table><thead><tr id="theadClassement"><th>#</th><th>Membre</th><th>Actions</th><th>Réussites</th><th>Gains générés</th></tr></thead>
-        <tbody id="tblClassement"><tr class="empty-row"><td colspan="5">Chargement…</td></tr></tbody></table>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head"><h2>Détail par semaine</h2></div>
-      <table><thead><tr><th>Semaine</th><th id="theadSemainesActions">Actions</th><th>Gains sale</th><th>Gains propre</th></tr></thead>
-        <tbody id="tblSemaines"><tr class="empty-row"><td colspan="4">Chargement…</td></tr></tbody></table>
+    <div id="panelQuotas" style="display:none;">
+      <p class="muted small mt16">Quota global = nombre d'actions attendu par membre sur la semaine active. ${SESSION.role === 'admin' ? 'Modifiable dans Admin → Quotas.' : ''}</p>
+      <div class="panel mt16">
+        <table><thead><tr><th>Membre</th><th>Quota / semaine</th><th>Réalisé</th><th>Progression</th></tr></thead>
+          <tbody id="tblQuotas"><tr class="empty-row"><td colspan="4">Chargement…</td></tr></tbody></table>
+      </div>
+      <div id="quotasProduitsWrap"></div>
     </div>
   `;
 }
@@ -230,17 +255,99 @@ function chargerStats() {
   document.getElementById("tblSemaines").innerHTML = lignesSemaines.length ? lignesSemaines.join("") : '<tr class="empty-row"><td colspan="4">Aucune semaine</td></tr>';
 }
 
+/* ================== QUOTAS (fusionné depuis l'ancienne page quotas.html) ================== */
+let QDATA = { semaines: {}, membres: {}, visi: {}, actionsDispo: {}, stock: {}, quotasCategorie: {}, actions: {} };
+let Q_ACTIVE_WEEK_ID = null, Q_ACTIONS_REF = null;
+
+function barreHtml(pct) {
+  return `<div style="background:var(--bg-2); border-radius:6px; height:8px; overflow:hidden; min-width:90px;">
+    <div style="height:100%; width:${Math.min(100, pct)}%; background:${pct >= 100 ? 'var(--success)' : 'var(--steel)'};"></div></div>`;
+}
+
+function recomputeWeekQuotas() {
+  const list = entries(QDATA.semaines).map(([id, s]) => ({ id, ...s })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const week = list.find(s => s.bloquee !== true) || list[0] || null;
+  const newWeekId = week ? week.id : null;
+  if (newWeekId !== Q_ACTIVE_WEEK_ID) {
+    if (Q_ACTIONS_REF) Q_ACTIONS_REF.off("value", onActionsChangeQuotas);
+    Q_ACTIVE_WEEK_ID = newWeekId;
+    QDATA.actions = {};
+    if (Q_ACTIVE_WEEK_ID) {
+      Q_ACTIONS_REF = db.ref("actions/" + Q_ACTIVE_WEEK_ID);
+      Q_ACTIONS_REF.on("value", onActionsChangeQuotas);
+    } else {
+      Q_ACTIONS_REF = null;
+      renderDerivedQuotas();
+    }
+    return;
+  }
+  renderDerivedQuotas();
+}
+
+function onActionsChangeQuotas(snap) {
+  QDATA.actions = snap.val() || {};
+  renderDerivedQuotas();
+}
+
+function renderDerivedQuotas() {
+  const gradesMasques = new Set(Object.keys(QDATA.visi).filter(g => QDATA.visi[g] && QDATA.visi[g].quotas === false));
+  const membres = entries(QDATA.membres).map(([id, m]) => ({ id, ...m })).filter(m => m.actif !== false && !gradesMasques.has(m.grade));
+  const actions = entries(QDATA.actions).map(([id, a]) => a);
+
+  const tblQuotas = document.getElementById("tblQuotas");
+  if (!tblQuotas) return;
+  tblQuotas.innerHTML = membres.length ? membres.map(m => {
+    const fait = actions.filter(a => a.membre_id === m.id && a.resultat === "Réussite" && !a.produit_drogue_id).reduce((acc, a) => acc + Number(a.quantite || 0), 0);
+    const quota = Number(m.quota) || 0;
+    const pct = quota > 0 ? Math.min(100, Math.round(fait / quota * 100)) : 0;
+    return `<tr>
+      <td>${m.prenom} ${m.nom || ""}</td>
+      <td>${quota}</td>
+      <td>${fait}</td>
+      <td style="min-width:140px;">${barreHtml(pct)}</td>
+    </tr>`;
+  }).join("") : '<tr class="empty-row"><td colspan="4">Aucun membre</td></tr>';
+
+  const wrap = document.getElementById("quotasProduitsWrap");
+  const catIds = [...new Set(Object.values(QDATA.actionsDispo).map(a => a.cat_variable).filter(Boolean))];
+  if (!catIds.length) { wrap.innerHTML = ""; return; }
+
+  wrap.innerHTML = catIds.map(catId => {
+    const cat = QDATA.stock[catId];
+    if (!cat) return "";
+    const isLabo = cat.nom === "Labo";
+    const produitIds = new Set(Object.keys(cat.produits || {}));
+    return `<div class="panel">
+      <div class="panel-head"><h2>${cat.emoji || ""} Quota ${cat.nom} (toutes confondues)</h2></div>
+      <table>
+        <thead><tr><th>Membre</th><th>Cible</th><th>Réalisé</th><th>Progression</th></tr></thead>
+        <tbody>
+          ${membres.map(m => {
+            const quota = Number((QDATA.quotasCategorie[m.id] || {})[catId]) || 0;
+            const actionsMembre = actions.filter(a => a.membre_id === m.id && produitIds.has(a.produit_drogue_id) && a.resultat === "Réussite");
+            const fait = isLabo ? actionsMembre.length : actionsMembre.reduce((acc, a) => acc + Number(a.quantite || 0), 0);
+            const pct = quota > 0 ? Math.round(fait / quota * 100) : 0;
+            return `<tr><td>${m.prenom}</td><td>${quota}</td><td>${fait}</td><td>${barreHtml(pct)}</td></tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>`;
+  }).join("");
+}
+
 (async function () {
   await authReady;
-  SESSION = await initShell("stats", "Stats");
+  SESSION = await initShell("stats", "Stats & Quotas");
   if (!SESSION) return;
   renderContent();
-  db.ref("membres").on("value", snap => { RAW.membres = snap.val() || {}; recalcDerived(); });
-  db.ref("actions_dispo").on("value", snap => { RAW.actionsDispo = snap.val() || {}; recalcDerived(); });
-  db.ref("semaines").on("value", snap => { RAW.semaines = snap.val() || {}; recalcDerived(); });
+
+  db.ref("membres").on("value", snap => { RAW.membres = snap.val() || {}; recalcDerived(); QDATA.membres = snap.val() || {}; renderDerivedQuotas(); });
+  db.ref("actions_dispo").on("value", snap => { RAW.actionsDispo = snap.val() || {}; recalcDerived(); QDATA.actionsDispo = snap.val() || {}; renderDerivedQuotas(); });
+  db.ref("semaines").on("value", snap => { RAW.semaines = snap.val() || {}; recalcDerived(); QDATA.semaines = snap.val() || {}; recomputeWeekQuotas(); });
   db.ref("actions").on("value", snap => { RAW.actionsParSemaine = snap.val() || {}; recalcDerived(); });
-  db.ref("stock").on("value", snap => { RAW.stock = snap.val() || {}; recalcDerived(); });
-  db.ref("visibilite_grades").on("value", snap => { RAW.visi = snap.val() || {}; recalcDerived(); });
+  db.ref("stock").on("value", snap => { RAW.stock = snap.val() || {}; recalcDerived(); QDATA.stock = snap.val() || {}; renderDerivedQuotas(); });
+  db.ref("visibilite_grades").on("value", snap => { RAW.visi = snap.val() || {}; recalcDerived(); QDATA.visi = snap.val() || {}; renderDerivedQuotas(); });
+  db.ref("quotas_categorie").on("value", snap => { QDATA.quotasCategorie = snap.val() || {}; renderDerivedQuotas(); });
 })();
 </script>
 </body>

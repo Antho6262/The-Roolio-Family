@@ -33,7 +33,13 @@ function switchTrackerTab(tab) {
   document.getElementById("tabCambriolage").classList.toggle("active", tab === "cambriolage");
   document.getElementById("tabBraquage").classList.toggle("active", tab === "braquage");
   document.getElementById("tabVenteDrogue").classList.toggle("active", tab === "drogue");
-  document.getElementById("actionFieldWrap").style.display = tab === "drogue" ? "none" : "block";
+  document.getElementById("tabLabo").classList.toggle("active", tab === "labo");
+  document.getElementById("actionFieldWrap").style.display = (tab === "drogue" || tab === "labo") ? "none" : "block";
+  document.getElementById("qteFieldWrap").style.display = tab === "labo" ? "none" : "block";
+  document.getElementById("laboFieldWrap").style.display = tab === "labo" ? "block" : "none";
+  document.getElementById("tblActionsWrap").style.display = tab === "labo" ? "none" : "block";
+  document.getElementById("tblLaboWrap").style.display = tab === "labo" ? "block" : "none";
+  if (tab === "labo") { renderLaboTable(); return; }
   remplirSelectAction();
 }
 
@@ -75,6 +81,7 @@ function renderContent() {
       <div class="tab" id="tabCambriolage" onclick="switchTrackerTab('cambriolage')">🏠 Cambriolage</div>
       <div class="tab" id="tabBraquage" onclick="switchTrackerTab('braquage')">🏦 Braquage</div>
       <div class="tab" id="tabVenteDrogue" onclick="switchTrackerTab('drogue')">💊 Vente de Drogue</div>
+      <div class="tab" id="tabLabo" onclick="switchTrackerTab('labo')">🧪 Labo</div>
     </div>
 
     <div class="panel mt16">
@@ -82,7 +89,14 @@ function renderContent() {
       <div class="row">
         <div><label class="l">Membre</label><select id="fMembre" onchange="renderEquipeCheckboxes()"></select></div>
         <div id="actionFieldWrap"><label class="l">Action</label><select id="fAction" onchange="onActionChange()"></select></div>
-        <div><label class="l">Quantité</label><input type="number" id="fQte" value="1" min="1" onchange="autoFillMontants()"></div>
+        <div id="qteFieldWrap"><label class="l">Quantité</label><input type="number" id="fQte" value="1" min="1" onchange="autoFillMontants()"></div>
+      </div>
+      <div class="row mt8" id="laboFieldWrap" style="display:none;">
+        <div><label class="l">Fertilisant utilisé</label><input type="number" id="lFertilisant" value="0" min="0"></div>
+        <div><label class="l">Eau utilisée</label><input type="number" id="lEau" value="0" min="0"></div>
+        <div><label class="l">Graines utilisées</label><input type="number" id="lGraines" value="0" min="0"></div>
+        <div><label class="l">Pots utilisés</label><input type="number" id="lPots" value="0" min="0"></div>
+        <div><label class="l">Branches récoltées</label><input type="number" id="lBranches" value="1" min="1"></div>
       </div>
       <div class="row mt8" id="produitVarWrap" style="display:none;">
         <div><label class="l">Produit</label><select id="fProduitVar" onchange="onProduitVarChange()"></select></div>
@@ -125,9 +139,13 @@ function renderContent() {
           <select id="filtLimite" onchange="renderTable()"><option value="10">Afficher 10</option><option value="30">Afficher 30</option><option value="50">Afficher 50</option><option value="9999">Tout afficher</option></select>
         </div>
       </div>
-      <table>
+      <table id="tblActionsWrap">
         <thead><tr><th>Date</th><th>Membre</th><th>Action</th><th>Qté</th><th>Résultat</th><th>Sale</th><th>Propre</th><th></th></tr></thead>
         <tbody id="tblActions"><tr class="empty-row"><td colspan="8">Chargement…</td></tr></tbody>
+      </table>
+      <table id="tblLaboWrap" style="display:none;">
+        <thead><tr><th>Date</th><th>Membre</th><th>Branches</th><th>Fertilisant</th><th>Eau</th><th>Graines</th><th>Pots</th><th>Résultat</th><th>Sale</th><th>Propre</th><th></th></tr></thead>
+        <tbody id="tblLabo"><tr class="empty-row"><td colspan="11">Chargement…</td></tr></tbody>
       </table>
     </div>
   `;
@@ -273,6 +291,7 @@ async function deduireStock(actionDef, quantite) {
 }
 
 async function ajouterAction() {
+  if (ACTIVE_TRACKER_TAB === "labo") return ajouterLabo();
   if (!ACTIVE_WEEK) { toast("Aucune semaine active.", true); return; }
   if (ACTIVE_WEEK.bloquee) { toast("La semaine active est bloquée.", true); return; }
   const membreId = document.getElementById("fMembre").value;
@@ -342,6 +361,88 @@ async function ajouterAction() {
   await chargerListes();
 }
 
+/* Déduit fertilisant/eau/graines/pots du Stock (recherche par nom de produit,
+   même logique que Mugiwara), puis ajoute les branches récoltées au produit "branche". */
+async function ajusterStockLabo({ fertilisant, eau, graines, pots, branches }) {
+  try {
+    const snap = await db.ref("stock").once("value");
+    const cats = entries(snap.val() || {});
+    const conso = [
+      { match: "fertilisant", qty: fertilisant },
+      { match: "eau", qty: eau },
+      { match: "graine", qty: graines },
+      { match: "pot", qty: pots }
+    ];
+    for (const c of conso) {
+      if (!c.qty) continue;
+      for (const [catId, cat] of cats) {
+        const prod = entries(cat.produits).find(([, p]) => (p.nom || "").toLowerCase().includes(c.match));
+        if (!prod) continue;
+        const [pid] = prod;
+        const ref = db.ref(`stock/${catId}/produits/${pid}/stock`);
+        const cur = Number((await ref.once("value")).val()) || 0;
+        await ref.set(Math.max(0, cur - c.qty));
+        break;
+      }
+    }
+    if (branches) {
+      for (const [catId, cat] of cats) {
+        const prod = entries(cat.produits).find(([, p]) => (p.nom || "").toLowerCase().includes("branche"));
+        if (!prod) continue;
+        const [pid] = prod;
+        const ref = db.ref(`stock/${catId}/produits/${pid}/stock`);
+        const cur = Number((await ref.once("value")).val()) || 0;
+        await ref.set(cur + branches);
+        break;
+      }
+    }
+  } catch (e) {
+    console.error("ajusterStockLabo", e); // jamais bloquant
+  }
+}
+
+async function ajouterLabo() {
+  if (!ACTIVE_WEEK) { toast("Aucune semaine active.", true); return; }
+  if (ACTIVE_WEEK.bloquee) { toast("La semaine active est bloquée.", true); return; }
+  const membreId = document.getElementById("fMembre").value;
+  const fertilisant = Number(document.getElementById("lFertilisant").value) || 0;
+  const eau = Number(document.getElementById("lEau").value) || 0;
+  const graines = Number(document.getElementById("lGraines").value) || 0;
+  const pots = Number(document.getElementById("lPots").value) || 0;
+  const branche_qty = Number(document.getElementById("lBranches").value) || 0;
+  const resultat = document.getElementById("fResultat").value;
+  const raison = document.getElementById("fRaison").value;
+  const sale = Number(document.getElementById("fSale").value) || 0;
+  const propre = Number(document.getElementById("fPropre").value) || 0;
+  const m = MEMBRES[membreId];
+  if (!m || branche_qty <= 0) { toast("Complétez le formulaire.", true); return; }
+
+  const entry = {
+    membre_id: membreId, prenom_membre: m.prenom, nom_membre: m.nom || "", grade_membre: m.grade || "",
+    action: "Labo", labo: true, quantite: branche_qty, branche_qty, fertilisant, eau, graines, pots,
+    date: document.getElementById("fDate").value || todayISO(), heure: nowHHMM(),
+    resultat, raison_echec: resultat === "Échec" ? raison : "",
+    argent_sale: sale, argent_propre: propre, gains_totaux: sale + propre,
+    createdAt: Date.now()
+  };
+  await db.ref("actions/" + ACTIVE_WEEK.id + "/" + uid()).set(entry);
+
+  if (resultat === "Réussite") {
+    await ajusterStockLabo({ fertilisant, eau, graines, pots, branches: branche_qty });
+    if (sale > 0) await db.ref("argent/sale/" + uid()).set({ date: entry.date, description: "Labo — récolte", type: "Entrée", montant: sale, responsable: m.prenom, createdAt: Date.now() });
+    if (propre > 0) await db.ref("argent/propre/" + uid()).set({ date: entry.date, description: "Labo — récolte", type: "Entrée", montant: propre, responsable: m.prenom, createdAt: Date.now() });
+  }
+
+  toast("Récolte enregistrée.");
+  document.getElementById("lFertilisant").value = 0;
+  document.getElementById("lEau").value = 0;
+  document.getElementById("lGraines").value = 0;
+  document.getElementById("lPots").value = 0;
+  document.getElementById("lBranches").value = 1;
+  document.getElementById("fSale").value = 0;
+  document.getElementById("fPropre").value = 0;
+}
+
 let ALL_ACTIONS = [];
 let ACTIONS_TABLE_REF = null;
 let ACTIONS_TABLE_WEEK_ID = null;
@@ -357,6 +458,7 @@ function subscribeActionsTable() {
   ACTIONS_TABLE_REF.on("value", (snap) => {
     ALL_ACTIONS = entries(snap.val()).map(([id, a]) => ({ id, ...a })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     renderTable();
+    renderLaboTable();
   });
 }
 
@@ -365,10 +467,11 @@ function renderTable() {
   const fa = document.getElementById("filtAction").value;
   const fr = document.getElementById("filtResultat").value;
   const limite = Number(document.getElementById("filtLimite").value) || 10;
-  const rows = ALL_ACTIONS.filter(a =>
-    (!fm || a.membre_id === fm) && (!fa || a.action_id === fa) && (!fr || a.resultat === fr) &&
-    getCategorieAction(ACTIONS_DISPO[a.action_id] || (a.produit_drogue_id ? { cat_variable: true } : { nom: a.action })) === ACTIVE_TRACKER_TAB
-  ).slice(0, limite);
+  const rows = ALL_ACTIONS.filter(a => {
+    if (a.labo) return false;
+    return (!fm || a.membre_id === fm) && (!fa || a.action_id === fa) && (!fr || a.resultat === fr) &&
+      getCategorieAction(ACTIONS_DISPO[a.action_id] || (a.produit_drogue_id ? { cat_variable: true } : { nom: a.action })) === ACTIVE_TRACKER_TAB;
+  }).slice(0, limite);
 
   const canDelete = SESSION.role === "admin";
   document.getElementById("tblActions").innerHTML = rows.length ? rows.map(a => `
@@ -382,6 +485,28 @@ function renderTable() {
       <td>${formatMoney(a.argent_propre)}</td>
       <td>${a.membre_id === SESSION.id || canDelete ? `<span class="btn btn-sm" onclick="modifierAction('${a.id}')">Modifier</span>` : ""} ${a.membre_id === SESSION.id || canDelete ? `<span class="btn btn-sm btn-danger" onclick="supprimerAction('${a.id}')">Suppr.</span>` : ""}</td>
     </tr>`).join("") : '<tr class="empty-row"><td colspan="8">Aucune action enregistrée</td></tr>';
+}
+
+function renderLaboTable() {
+  const fm = document.getElementById("filtMembre").value;
+  const fr = document.getElementById("filtResultat").value;
+  const limite = Number(document.getElementById("filtLimite").value) || 10;
+  const rows = ALL_ACTIONS.filter(a => a.labo && (!fm || a.membre_id === fm) && (!fr || a.resultat === fr)).slice(0, limite);
+  const canDelete = SESSION.role === "admin";
+  document.getElementById("tblLabo").innerHTML = rows.length ? rows.map(a => `
+    <tr>
+      <td>${a.date} ${a.heure || ""}</td>
+      <td>${a.prenom_membre}</td>
+      <td>🌿 ${a.branche_qty || 0}</td>
+      <td>${a.fertilisant || 0}</td>
+      <td>${a.eau || 0}</td>
+      <td>${a.graines || 0}</td>
+      <td>${a.pots || 0}</td>
+      <td><span class="badge ${a.resultat === 'Réussite' ? 'badge-ok' : 'badge-fail'}">${a.resultat}</span></td>
+      <td>${formatMoney(a.argent_sale)}</td>
+      <td>${formatMoney(a.argent_propre)}</td>
+      <td>${a.membre_id === SESSION.id || canDelete ? `<span class="btn btn-sm btn-danger" onclick="supprimerAction('${a.id}')">Suppr.</span>` : ""}</td>
+    </tr>`).join("") : '<tr class="empty-row"><td colspan="11">Aucune récolte enregistrée</td></tr>';
 }
 
 async function modifierAction(id) {

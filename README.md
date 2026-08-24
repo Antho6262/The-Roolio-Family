@@ -59,7 +59,6 @@ roolio-family-site/
     ├── tracker.html
     ├── stats.html
     ├── stock.html
-    ├── quotas.html
     ├── blanchiment.html
     ├── admin.html
     ├── profil.html

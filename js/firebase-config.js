@@ -33,10 +33,8 @@ const authReady = new Promise(resolve => {
 const PAGES_DISPO = [
   { page: "dashboard",     label: "Dashboard" },
   { page: "tracker",       label: "Tracker" },
-  { page: "stats",         label: "Stats" },
+  { page: "stats",         label: "Stats & Quotas" },
   { page: "stock",         label: "Stock" },
-  { page: "quotas",        label: "Quotas" },
-  { page: "labo",          label: "Labo" },
   { page: "blanchiment",   label: "Blanchiment" },
   { page: "paye",          label: "Paye" },
   { page: "transactions",  label: "Transactions" },
