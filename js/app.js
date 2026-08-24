@@ -92,6 +92,7 @@ async function initShell(activePage, pageTitle) {
         <div class="sidebar-head">
           <img src="${root}img/logo.png" alt="The Roolio Family" class="sidebar-coin">
           <div class="sidebar-logo"><span class="full">THE ROOLIO FAMILY</span></div>
+          <div class="sidebar-tag">☠ Omertà ☠</div>
         </div>
         <nav class="nav">${navHtml}</nav>
         <div class="sidebar-foot">
