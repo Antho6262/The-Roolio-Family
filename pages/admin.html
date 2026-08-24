@@ -823,6 +823,13 @@ async function tabActions(body) {
         <input type="number" id="aSale" placeholder="$ sale / unité" value="0">
         <input type="number" id="aPropre" placeholder="$ propre / unité" value="0">
       </div>
+      <div class="row mt8">
+        <select id="aCategorie">
+          <option value="action">🎯 Action (onglet générique)</option>
+          <option value="cambriolage">🏠 Cambriolage</option>
+          <option value="braquage">🏦 Braquage (équipe — ex: Fleeca, Armurerie)</option>
+        </select>
+      </div>
       <div class="row mt8" id="recipeBuilder">
         <select id="recipeProd"><option value="">— Produit consommé fixe (optionnel) —</option>${prodOptions}</select>
         <input type="number" id="recipeQty" placeholder="Qté consommée / unité" value="1">
@@ -842,7 +849,7 @@ async function tabActions(body) {
     </div>
     <div class="panel">
       <div class="panel-head"><h2>Actions disponibles</h2></div>
-      <table><thead><tr><th>Nom</th><th>$ sale/u</th><th>$ propre/u</th><th>Stock</th><th></th></tr></thead>
+      <table><thead><tr><th>Nom</th><th>Catégorie</th><th>$ sale/u</th><th>$ propre/u</th><th>Stock</th><th></th></tr></thead>
         <tbody>${actions.length ? actions.map(a => {
           const catVar = a.cat_variable ? cats.find(c => c.id === a.cat_variable) : null;
           const recetteTxt = (a.recipe || []).map(r => {
@@ -850,10 +857,11 @@ async function tabActions(body) {
             const prod = cat && cat.produits ? cat.produits[r.prodId] : null;
             return prod ? `${prod.nom} x${r.qty}` : "—";
           }).join(", ");
-          return `<tr><td>${a.nom}</td><td>${formatMoney(a.montant_sale || 0)}</td><td>${formatMoney(a.montant_propre || 0)}</td>
+          const catLabel = { action: "🎯 Action", cambriolage: "🏠 Cambriolage", braquage: "🏦 Braquage", drogue: "💊 Vente de Drogue" }[a.cat_variable ? "drogue" : (a.categorie || (a.nom === "Fleeca" || a.nom === "Armurerie" ? "braquage" : "action"))];
+          return `<tr><td>${a.nom}</td><td class="small">${catLabel}</td><td>${formatMoney(a.montant_sale || 0)}</td><td>${formatMoney(a.montant_propre || 0)}</td>
           <td class="small">${catVar ? `Produit choisi (${catVar.emoji || ""} ${catVar.nom}) ${a.production ? '<span class="badge badge-ok">+ récolte</span>' : '<span class="badge">- vente</span>'}` : (recetteTxt || "—")}</td>
           <td><span class="btn btn-sm btn-danger" onclick="suppAction('${a.id}')">Suppr.</span></td></tr>`;
-        }).join("") : '<tr class="empty-row"><td colspan="5">Aucune action définie</td></tr>'}</tbody></table>
+        }).join("") : '<tr class="empty-row"><td colspan="6">Aucune action définie</td></tr>'}</tbody></table>
     </div>
   `;
 }
@@ -886,14 +894,14 @@ async function importerActionsClassiques() {
   }
 
   await db.ref("actions_dispo").update({
-    vente_drogue: { nom: "Vente de Drogue", montant_sale: 0, montant_propre: 0, recipe: [], cat_variable: "drogue_cat" },
-    atm: { nom: "ATM", montant_sale: 0, montant_propre: 0, recipe: [{ catId: "materiel_cat", prodId: "boitier", qty: 1 }] },
-    cambu: { nom: "Cambu", montant_sale: 0, montant_propre: 0, recipe: [{ catId: "materiel_cat", prodId: "crochetage", qty: 1 }] },
+    vente_drogue: { nom: "Vente de Drogue", montant_sale: 0, montant_propre: 0, recipe: [], cat_variable: "drogue_cat", categorie: "action" },
+    atm: { nom: "ATM", montant_sale: 0, montant_propre: 0, recipe: [{ catId: "materiel_cat", prodId: "boitier", qty: 1 }], categorie: "action" },
+    cambu: { nom: "Cambu", montant_sale: 0, montant_propre: 0, recipe: [{ catId: "materiel_cat", prodId: "crochetage", qty: 1 }], categorie: "cambriolage" },
     plantation: { nom: "Plantation", montant_sale: 0, montant_propre: 0, recipe: [
       { catId: "plantation_cat", prodId: "eau", qty: 1 }, { catId: "plantation_cat", prodId: "fertilisant", qty: 1 },
       { catId: "plantation_cat", prodId: "graine", qty: 1 }, { catId: "plantation_cat", prodId: "pot", qty: 1 }
-    ]},
-    vente_branches: { nom: "Vente de Branches", montant_sale: 0, montant_propre: 0, recipe: [{ catId: "branches_cat", prodId: "branche", qty: 1 }] }
+    ], categorie: "action" },
+    vente_branches: { nom: "Vente de Branches", montant_sale: 0, montant_propre: 0, recipe: [{ catId: "branches_cat", prodId: "branche", qty: 1 }], categorie: "action" }
   });
 
   toast("Actions importées — ajuste les prix/stocks dans Admin → Stock.");
@@ -916,6 +924,7 @@ async function creerAction() {
     montant_propre: Number(document.getElementById("aPropre").value) || 0,
     recipe: RECIPE_LINES,
     cat_variable: document.getElementById("aCatVariable").value || null,
+    categorie: document.getElementById("aCategorie").value || "action",
     production: document.getElementById("aProduction").checked
   });
   RECIPE_LINES = [];

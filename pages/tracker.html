@@ -19,10 +19,20 @@ let SESSION, ACTIVE_WEEK = null, VIEW_WEEK = null, ALL_SEMAINES = [], MEMBRES = 
 let ACTIVE_TRACKER_TAB = "action";
 const PURETE_DROGUES_AUTORISEES = ["mexicana", "cock", "cannabis"];
 
+function getCategorieAction(act) {
+  if (!act) return "action";
+  if (act.cat_variable) return "drogue";
+  if (act.categorie) return act.categorie;
+  if (act.nom === "Fleeca" || act.nom === "Armurerie") return "braquage";
+  return "action";
+}
+
 function switchTrackerTab(tab) {
   ACTIVE_TRACKER_TAB = tab;
-  document.getElementById("tabVenteDrogue").classList.toggle("active", tab === "drogue");
   document.getElementById("tabAction").classList.toggle("active", tab === "action");
+  document.getElementById("tabCambriolage").classList.toggle("active", tab === "cambriolage");
+  document.getElementById("tabBraquage").classList.toggle("active", tab === "braquage");
+  document.getElementById("tabVenteDrogue").classList.toggle("active", tab === "drogue");
   document.getElementById("actionFieldWrap").style.display = tab === "drogue" ? "none" : "block";
   remplirSelectAction();
 }
@@ -62,6 +72,8 @@ function renderContent() {
 
     <div class="tabs mt16" id="trackerTabsBar">
       <div class="tab active" id="tabAction" onclick="switchTrackerTab('action')">🎯 Action</div>
+      <div class="tab" id="tabCambriolage" onclick="switchTrackerTab('cambriolage')">🏠 Cambriolage</div>
+      <div class="tab" id="tabBraquage" onclick="switchTrackerTab('braquage')">🏦 Braquage</div>
       <div class="tab" id="tabVenteDrogue" onclick="switchTrackerTab('drogue')">💊 Vente de Drogue</div>
     </div>
 
@@ -149,7 +161,7 @@ function onActionChange() {
     sel.innerHTML = "";
   }
   onProduitVarChange();
-  document.getElementById("equipeWrap").style.display = (act && (act.nom === "Fleeca" || act.nom === "Armurerie")) ? "block" : "none";
+  document.getElementById("equipeWrap").style.display = (act && getCategorieAction(act) === "braquage") ? "block" : "none";
   renderEquipeCheckboxes();
 
   // bannière event drogue
@@ -177,7 +189,7 @@ function onActionChange() {
 
 function estActionEquipe() {
   const act = ACTIONS_DISPO[document.getElementById("fAction").value];
-  return !!(act && (act.nom === "Fleeca" || act.nom === "Armurerie"));
+  return !!(act && getCategorieAction(act) === "braquage");
 }
 
 function renderEquipeCheckboxes() {
@@ -223,7 +235,7 @@ async function chargerListes() {
 function remplirSelectAction() {
   const selA = document.getElementById("fAction"), filtA = document.getElementById("filtAction");
   const actEntries = entries(ACTIONS_DISPO).filter(([, a]) =>
-    a.nom !== "Labo" && (ACTIVE_TRACKER_TAB === "drogue" ? !!a.cat_variable : !a.cat_variable)
+    a.nom !== "Labo" && getCategorieAction(a) === ACTIVE_TRACKER_TAB
   );
   selA.innerHTML = "";
   filtA.innerHTML = '<option value="">Toutes les actions</option>';
@@ -275,7 +287,7 @@ async function ajouterAction() {
   if (act.cat_variable && !document.getElementById("fProduitVar").value) { toast("Choisissez un produit.", true); return; }
 
   let participantsIds = [];
-  if (act.nom === "Fleeca" || act.nom === "Armurerie") {
+  if (getCategorieAction(act) === "braquage") {
     participantsIds = Array.from(document.querySelectorAll(".chkEquipe:checked")).map(c => c.value);
   }
 
@@ -355,7 +367,7 @@ function renderTable() {
   const limite = Number(document.getElementById("filtLimite").value) || 10;
   const rows = ALL_ACTIONS.filter(a =>
     (!fm || a.membre_id === fm) && (!fa || a.action_id === fa) && (!fr || a.resultat === fr) &&
-    (ACTIVE_TRACKER_TAB === "drogue" ? !!a.produit_drogue_id : !a.produit_drogue_id)
+    getCategorieAction(ACTIONS_DISPO[a.action_id] || (a.produit_drogue_id ? { cat_variable: true } : { nom: a.action })) === ACTIVE_TRACKER_TAB
   ).slice(0, limite);
 
   const canDelete = SESSION.role === "admin";
