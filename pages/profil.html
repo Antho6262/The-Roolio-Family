@@ -26,7 +26,7 @@ function renderContent() {
       <div class="panel">
         <div class="panel-head"><h2>Mes informations</h2></div>
         <p><b style="color:var(--steel)">${SESSION.prenom} ${SESSION.nom || ""}</b></p>
-        <p class="muted small">Grade : ${SESSION.grade || "-"}</p>
+        <p class="muted small">Grade : ${gradeEmoji(SESSION.grade)} ${SESSION.grade || "-"}</p>
         <p class="muted small">Rôle : ${SESSION.role === 'admin' ? 'Administrateur' : 'Membre'}</p>
 
         <div class="fieldset mt24">

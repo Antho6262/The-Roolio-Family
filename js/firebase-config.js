@@ -83,6 +83,18 @@ async function loadPermissions() {
   _permsCache = snap.val() || {};
   return _permsCache;
 }
+let _gradesCache = null;
+async function loadGrades() {
+  if (_gradesCache) return _gradesCache;
+  const snap = await db.ref("grades").once("value");
+  _gradesCache = snap.val() || {};
+  return _gradesCache;
+}
+function gradeEmoji(nomGrade) {
+  if (!_gradesCache || !nomGrade) return "";
+  const g = Object.values(_gradesCache).find(g => g.nom === nomGrade);
+  return g && g.emoji ? g.emoji : "";
+}
 async function canAccess(membre, page) {
   if (!membre) return false;
   if (membre.role === "admin") return true;

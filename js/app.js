@@ -48,6 +48,7 @@ async function initShell(activePage, pageTitle) {
     return null;
   }
 
+  await loadGrades();
   const root = pathToRoot();
   const primaryItems = NAV_ITEMS.slice(0, NAV_PRIMARY_COUNT);
   const restItems = NAV_ITEMS.slice(NAV_PRIMARY_COUNT);
@@ -93,7 +94,7 @@ async function initShell(activePage, pageTitle) {
         </div>
         <nav class="nav">${navHtml}</nav>
         <div class="sidebar-foot">
-          <div class="who"><b>${session.prenom} ${session.nom || ""}</b><span class="grade">${session.grade || ""}</span></div>
+          <div class="who"><b>${session.prenom} ${session.nom || ""}</b><span class="grade">${gradeEmoji(session.grade)} ${session.grade || ""}</span></div>
           <div id="rtStatus" class="small muted" style="margin:6px 0;">🔄 Connexion…</div>
           <span class="logout-link" onclick="logout()">Se déconnecter</span>
         </div>
