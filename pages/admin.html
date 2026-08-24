@@ -1019,6 +1019,12 @@ async function tabGrades(body) {
   const snap = await db.ref("grades").once("value");
   const grades = entries(snap.val()).map(([id, g]) => ({ id, ...g })).sort((a, b) => (a.ordre || 99) - (b.ordre || 99));
   body.innerHTML = `
+    <div class="panel" style="border-color:rgba(201,162,39,.3);">
+      <div class="panel-head"><h2>Import rapide — hiérarchie The Roolio Family</h2></div>
+      <p class="small muted">Crée en un clic les 6 grades : Patron, Bras Droit, Underboss, Capo, Soldat, Recrue.
+      Tu pourras renommer/ajuster l'ordre ensuite.</p>
+      <button class="btn btn-gold mt8" onclick="importerGradesClassiques()">Importer la hiérarchie</button>
+    </div>
     <div class="panel">
       <div class="panel-head"><h2>Nouveau grade</h2></div>
       <div class="row"><input type="text" id="gNom" placeholder="Nom du grade">
@@ -1035,6 +1041,19 @@ async function tabGrades(body) {
         `).join("") : '<tr class="empty-row"><td colspan="3">Aucun grade</td></tr>'}</tbody></table>
     </div>
   `;
+}
+async function importerGradesClassiques() {
+  await db.ref("grades").update({
+    patron: { nom: "Patron", ordre: 1 },
+    bras_droit: { nom: "Bras Droit", ordre: 2 },
+    underboss: { nom: "Underboss", ordre: 3 },
+    capo: { nom: "Capo", ordre: 4 },
+    soldat: { nom: "Soldat", ordre: 5 },
+    recrue: { nom: "Recrue", ordre: 6 }
+  });
+  logAudit("Grades importés", "Patron, Bras Droit, Underboss, Capo, Soldat, Recrue");
+  toast("Hiérarchie importée.");
+  loadTab("grades");
 }
 async function creerGrade() {
   const nom = document.getElementById("gNom").value.trim();

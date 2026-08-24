@@ -27,7 +27,7 @@ function formatDateFR(d) {
 function nomSemaine(debut) {
   const fin = new Date(debut);
   fin.setDate(fin.getDate() + 6);
-  return `${formatDateFR(debut)} - ${formatDateFR(fin)}`;
+  return `Semaine du ${formatDateFR(debut)} au ${formatDateFR(fin)}`;
 }
 
 // Heure de Paris fiable (gère automatiquement CET/CEST)
