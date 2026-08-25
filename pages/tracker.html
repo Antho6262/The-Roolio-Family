@@ -362,7 +362,9 @@ async function ajouterAction() {
 }
 
 /* Déduit fertilisant/eau/graines/pots du Stock (recherche par nom de produit,
-   même logique que Mugiwara), puis ajoute les branches récoltées au produit "branche". */
+   même logique que Mugiwara), puis ajoute les branches récoltées au produit "branche".
+   Une seule source de vérité : stock/.../produits/.../stock (lu partout : Dashboard,
+   Stock, Admin — voir migrerLaboStockCommun() dans pages/stock.html). */
 async function ajusterStockLabo({ fertilisant, eau, graines, pots, branches }) {
   try {
     const snap = await db.ref("stock").once("value");
